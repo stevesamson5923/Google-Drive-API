@@ -49,7 +49,12 @@ extension_mime = {'aac':'audio/aac','css':'text/css','csv':'text/csv','doc':'app
                   'ppt':'application/vnd.ms-powerpoint','avi':'video/x-msvideo','wav':'audio/wav','xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                   'xls':'application/vnd.ms-excel'}
 
-
+search_mime = {'Audios':['audio/aac','audio/mpeg','audio/wav'],'MS Word':'application/msword',
+                  'Images':['image/gif','image/jpeg','image/png'],'PDF':'application/pdf',
+                  'Winrar/Zip':'application/vnd.rar','Text file':'text/plain',
+                  'PPTS':'application/vnd.ms-powerpoint','Videos':'video/x-msvideo',
+                  'Excel sheets':'application/vnd.ms-excel','Folders':'application/vnd.google-apps.folder'}
+#['image/gif','image/jpeg','image/jpeg','image/png']
 SITE_LIST = []
 ID_LIST=[]
 REFRESH = False
@@ -505,6 +510,38 @@ def open_right_frame_menu(event):
     finally:
         popup_menu.grab_release()
     
+def display_searched_files():
+    mime = search_mime[filetype.get()]
+    for a in right_frame.winfo_children():
+        a.destroy()
+    scroll_f1 = ScrollableFrame(right_frame)
+    scroll_f1.pack(expand=True,fill='both')
+    if type(mime) == list:
+        for m in mime:
+            response = service.files().list(q=f"mimeType='{m}'",fields='files(id,name,mimeType,iconLink,thumbnailLink,modifiedTime,owners,parents)',spaces='drive').execute()
+            for files in response.get('files', []):
+                f11 = Frame(scroll_f1.scrollable_frame,width=WIDTH-250,height=100,bg='#fff')
+                f11.pack(padx=10,pady=10)
+                f11.pack_propagate(0)
+                #print ('Found file: %s (%s)' % (file.get('name'), file.get('id')))
+                File_Item(f11,files['id'],files['name'],files['mimeType'],files['thumbnailLink'],files['modifiedTime'],files['owners'][0]['displayName'],files['owners'][0]['photoLink'])
+
+    else:
+        response = service.files().list(q=f"mimeType='{mime}'",fields='files(id,name,mimeType,iconLink,thumbnailLink,modifiedTime,owners,parents)',spaces='drive').execute()
+        for files in response.get('files', []):
+            #print ('Found file: %s (%s)' % (file.get('name'), file.get('id')))
+            f11 = Frame(scroll_f1.scrollable_frame,width=WIDTH-250,height=100,bg='#fff')
+            f11.pack(padx=10,pady=10)
+            f11.pack_propagate(0)
+            #print ('Found file: %s (%s)' % (file.get('name'), file.get('id')))
+            File_Item(f11,files['id'],files['name'],files['mimeType'],files['thumbnailLink'],files['modifiedTime'],files['owners'][0]['displayName'],files['owners'][0]['photoLink'])
+
+def search_drive(event):
+    print(filetype.get())
+    print(search_box.get())
+    x = threading.Thread(target=display_searched_files)
+    x.start()
+                        
 left_frame = Frame(root,width=220,height=600,bg='#4c915e')
 left_frame.pack(side='left')
 left_frame.pack_propagate(0)
@@ -520,7 +557,7 @@ user_label.pack(pady=(15,0))
 
 email_frame = Frame(left_frame,width=220,height=600,bg='#4c915e')
 email_frame.pack()
-user_emailid = Label(email_frame,text='stevesamson75@gmail.com',font=text_font,bg='#4c915e',fg="#fcfcfa")
+user_emailid = Label(email_frame,text='Email: NA',font=text_font,bg='#4c915e',fg="#fcfcfa")
 user_emailid.pack(side='left',pady=(15,0),fill='x',expand=True)
 change_user_photo = ImageTk.PhotoImage(Image.open("edit.png").resize((20,20)))
 change_user_label = Label(email_frame,width=20, height=20,image=change_user_photo,bg='#4c915e',cursor='hand2')
@@ -529,6 +566,29 @@ change_user_label.bind('<Button-1>',change_user_account)
                
 storage_quota_label = Label(left_frame,text=f'Disk usage: NA',bg='#4c915e',fg="#fcfcfa")
 storage_quota_label.pack()
+
+search_frame = Frame(left_frame,width=180,height=600,bg='#4c915e')
+search_frame.pack(pady=50)
+search_frame.pack_propagate(0)
+n = tk.StringVar()
+filetype = ttk.Combobox(search_frame, width = 100, textvariable = n)
+filetype['values'] = ('Select File type', 
+                          'Images',
+                          'PDF',
+                          'Videos',
+                          'Audios',
+                          'PPTS',
+                          'Excel sheets',
+                          'Folders',
+                          'Text file',
+                          'Winrar/Zip')
+filetype.current(0)
+filetype.pack(pady=10)
+search_box = Entry(search_frame,width=100,font=('Raleway',8))
+search_box.pack(pady=5)
+go_but = Button(search_frame,text='Search',font=('Raleway',8,'bold'),width=100,bg='#207fc7',fg='#fff',cursor='hand2')                
+go_but.bind('<Button-1>',search_drive)
+go_but.pack(pady=5)
 
 download_percent = Label(left_frame,text='',bg='#4c915e',fg="#fcfcfa",font=('Raleway',14,'bold'))
 download_percent.pack(pady=(15,0),padx=(20,0))
